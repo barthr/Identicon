@@ -24,13 +24,13 @@ type DrawingPoint struct {
 }
 
 type GridPoint struct {
-	location byte
-	index    int
+	value byte
+	index int
 }
 
 type Identicon struct {
 	name       string
-	hex        [16]byte
+	hash       [16]byte
 	color      [3]byte
 	grid       []byte
 	gridPoints []GridPoint
@@ -83,27 +83,28 @@ func pipe(identicon Identicon, funcs ...Apply) Identicon {
 
 func hashInput(input []byte) Identicon {
 	checkSum := md5.Sum(input)
+	fmt.Println(checkSum)
 	return Identicon{
 		name: string(input),
-		hex:  checkSum,
+		hash: checkSum,
 	}
 }
 
 func pickColor(identicon Identicon) Identicon {
 	rgb := [3]byte{}
-	copy(rgb[:], identicon.hex[:3])
+	copy(rgb[:], identicon.hash[:3])
 	identicon.color = rgb
 	return identicon
 }
 
 func buildGrid(identicon Identicon) Identicon {
 	grid := []byte{}
-	for i := 0; i < len(identicon.hex); i += 3 {
+	for i := 0; i < len(identicon.hash); i += 3 {
 		if i+3 > 15 {
 			break
 		}
 		chunk := make([]byte, 5)
-		copy(chunk, identicon.hex[i:i+3])
+		copy(chunk, identicon.hash[i:i+3])
 		chunk[3] = chunk[1]
 		chunk[4] = chunk[0]
 		grid = append(grid, chunk...)
@@ -118,8 +119,8 @@ func filterOddSquares(identicon Identicon) Identicon {
 	for i, code := range identicon.grid {
 		if code%2 == 0 {
 			point := GridPoint{
-				location: code,
-				index:    i,
+				value: code,
+				index: i,
 			}
 			grid = append(grid, point)
 		}
