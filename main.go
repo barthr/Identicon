@@ -99,10 +99,7 @@ func pickColor(identicon Identicon) Identicon {
 
 func buildGrid(identicon Identicon) Identicon {
 	grid := []byte{}
-	for i := 0; i < len(identicon.hash); i += 3 {
-		if i+3 > 15 {
-			break
-		}
+	for i := 0; i < len(identicon.hash) && i+3 <= len(identicon.hash)-1; i += 3 {
 		chunk := make([]byte, 5)
 		copy(chunk, identicon.hash[i:i+3])
 		chunk[3] = chunk[1]
