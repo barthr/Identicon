@@ -83,7 +83,6 @@ func pipe(identicon Identicon, funcs ...Apply) Identicon {
 
 func hashInput(input []byte) Identicon {
 	checkSum := md5.Sum(input)
-	fmt.Println(checkSum)
 	return Identicon{
 		name: string(input),
 		hash: checkSum,

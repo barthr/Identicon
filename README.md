@@ -1,9 +1,10 @@
 # Identicon Generator
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/barthr/Identicon)](https://goreportcard.com/report/github.com/barthr/Identicon)
 
 ## Introduction
 
-This is a small example of a simple identicon generator written in golang, the blog post can be found here: blog.bartfokker.nl/identicon/
+This is a small example of a simple identicon generator written in golang, the blog post can be found here: https://blog.bartfokker.nl/identicon/
 
 
 ## go get to get the package
