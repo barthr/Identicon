@@ -4,7 +4,7 @@
 
 ## Introduction
 
-This is a small example of a simple identicon generator written in golang, the blog post can be found here: https://blog.bartfokker.nl/identicon/
+This is a small example of a simple identicon generator written in golang, the blog post can be found here: https://www.bartfokker.nl/identicon/
 
 
 ## go get to get the package
