@@ -1,15 +1,11 @@
-package main
+package identicon
 
 import (
 	"crypto/md5"
-	"fmt"
 	"image"
 	"image/color"
-	"log"
-
-	"flag"
-
-	"os"
+	"image/png"
+	"io"
 
 	"github.com/llgcode/draw2d/draw2dimg"
 )
@@ -29,7 +25,7 @@ type GridPoint struct {
 }
 
 type Identicon struct {
-	name       string
+	Name       string
 	hash       [16]byte
 	color      [3]byte
 	grid       []byte
@@ -37,46 +33,27 @@ type Identicon struct {
 	pixelMap   []DrawingPoint
 }
 
-type Apply func(Identicon) Identicon
+// WriteTo writes the identicon image to the given writer
+func (i Identicon) WriteImage(w io.Writer) error {
+	var img = image.NewRGBA(image.Rect(0, 0, 250, 250))
+	col := color.RGBA{R: i.color[0], G: i.color[1], B: i.color[2], A: 255}
 
-var welcomeSignature = `
-Usage of Identicon made By Bart
-_______________________________
-	< Identicon >
--------------------------------
-
--name string:
-	Set the name where you want to generate a identicon for
-
-`
-
-func main() {
-	var (
-		name = flag.String("name", "", "Set the name where you want to generate a identicon for")
-	)
-	flag.Parse()
-
-	if *name == "" {
-		flag.Usage = func() {
-			fmt.Println(welcomeSignature)
-		}
-		flag.Usage()
-		os.Exit(0)
+	for _, pixel := range i.pixelMap {
+		rect(img, col, float64(pixel.topLeft.x), float64(pixel.topLeft.y), float64(pixel.bottomRight.x), float64(pixel.bottomRight.y))
 	}
 
-	data := []byte(*name)
-	identicon := hashInput(data)
-
-	identicon = pipe(identicon, pickColor, buildGrid, filterOddSquares, buildPixelMap)
-
-	if err := drawRectangle(identicon); err != nil {
-		log.Fatalln(err)
-	}
+	return png.Encode(w, img)
 }
 
-func pipe(identicon Identicon, funcs ...Apply) Identicon {
-	for _, applyer := range funcs {
-		identicon = applyer(identicon)
+type ApplyFunc func(Identicon) Identicon
+
+func Generate(input []byte) Identicon {
+	identiconPipe := []ApplyFunc{
+		pickColor, buildGrid, filterOddSquares, buildPixelMap,
+	}
+	identicon := hashInput(input)
+	for _, applyFunc := range identiconPipe {
+		identicon = applyFunc(identicon)
 	}
 	return identicon
 }
@@ -84,7 +61,7 @@ func pipe(identicon Identicon, funcs ...Apply) Identicon {
 func hashInput(input []byte) Identicon {
 	checkSum := md5.Sum(input)
 	return Identicon{
-		name: string(input),
+		Name: string(input),
 		hash: checkSum,
 	}
 }
@@ -97,7 +74,7 @@ func pickColor(identicon Identicon) Identicon {
 }
 
 func buildGrid(identicon Identicon) Identicon {
-	grid := []byte{}
+	var grid []byte
 	for i := 0; i < len(identicon.hash) && i+3 <= len(identicon.hash)-1; i += 3 {
 		chunk := make([]byte, 5)
 		copy(chunk, identicon.hash[i:i+3])
@@ -111,7 +88,7 @@ func buildGrid(identicon Identicon) Identicon {
 }
 
 func filterOddSquares(identicon Identicon) Identicon {
-	grid := []GridPoint{}
+	var grid []GridPoint
 	for i, code := range identicon.grid {
 		if code%2 == 0 {
 			point := GridPoint{
@@ -125,8 +102,21 @@ func filterOddSquares(identicon Identicon) Identicon {
 	return identicon
 }
 
+func rect(img *image.RGBA, col color.Color, x1, y1, x2, y2 float64) {
+	gc := draw2dimg.NewGraphicContext(img)
+	gc.SetFillColor(col)
+	gc.MoveTo(x1, y1)
+	gc.LineTo(x1, y1)
+	gc.LineTo(x1, y2)
+	gc.MoveTo(x2, y1)
+	gc.LineTo(x2, y1)
+	gc.LineTo(x2, y2)
+	gc.SetLineWidth(0)
+	gc.FillStroke()
+}
+
 func buildPixelMap(identicon Identicon) Identicon {
-	drawingPoints := []DrawingPoint{}
+	var drawingPoints []DrawingPoint
 
 	pixelFunc := func(p GridPoint) DrawingPoint {
 		horizontal := (p.index % 5) * 50
@@ -145,27 +135,4 @@ func buildPixelMap(identicon Identicon) Identicon {
 	}
 	identicon.pixelMap = drawingPoints
 	return identicon
-}
-
-func drawRectangle(identicon Identicon) error {
-	var img = image.NewRGBA(image.Rect(0, 0, 250, 250))
-	col := color.RGBA{identicon.color[0], identicon.color[1], identicon.color[2], 255}
-
-	for _, pixel := range identicon.pixelMap {
-		rect(img, col, float64(pixel.topLeft.x), float64(pixel.topLeft.y), float64(pixel.bottomRight.x), float64(pixel.bottomRight.y))
-	}
-	return draw2dimg.SaveToPngFile(identicon.name+".png", img)
-}
-
-func rect(img *image.RGBA, col color.Color, x1, y1, x2, y2 float64) {
-	gc := draw2dimg.NewGraphicContext(img)
-	gc.SetFillColor(col)
-	gc.MoveTo(x1, y1)
-	gc.LineTo(x1, y1)
-	gc.LineTo(x1, y2)
-	gc.MoveTo(x2, y1)
-	gc.LineTo(x2, y1)
-	gc.LineTo(x2, y2)
-	gc.SetLineWidth(0)
-	gc.FillStroke()
 }
