@@ -10,16 +10,16 @@ import (
 	"github.com/llgcode/draw2d/draw2dimg"
 )
 
-type Point struct {
+type point struct {
 	x, y int
 }
 
-type DrawingPoint struct {
-	topLeft     Point
-	bottomRight Point
+type drawingPoint struct {
+	topLeft     point
+	bottomRight point
 }
 
-type GridPoint struct {
+type gridPoint struct {
 	value byte
 	index int
 }
@@ -29,8 +29,8 @@ type Identicon struct {
 	hash       [16]byte
 	color      [3]byte
 	grid       []byte
-	gridPoints []GridPoint
-	pixelMap   []DrawingPoint
+	gridPoints []gridPoint
+	pixelMap   []drawingPoint
 }
 
 // WriteTo writes the identicon image to the given writer
@@ -45,10 +45,10 @@ func (i Identicon) WriteImage(w io.Writer) error {
 	return png.Encode(w, img)
 }
 
-type ApplyFunc func(Identicon) Identicon
+type applyFunc func(Identicon) Identicon
 
 func Generate(input []byte) Identicon {
-	identiconPipe := []ApplyFunc{
+	identiconPipe := []applyFunc{
 		pickColor, buildGrid, filterOddSquares, buildPixelMap,
 	}
 	identicon := hashInput(input)
@@ -88,10 +88,10 @@ func buildGrid(identicon Identicon) Identicon {
 }
 
 func filterOddSquares(identicon Identicon) Identicon {
-	var grid []GridPoint
+	var grid []gridPoint
 	for i, code := range identicon.grid {
 		if code%2 == 0 {
-			point := GridPoint{
+			point := gridPoint{
 				value: code,
 				index: i,
 			}
@@ -116,15 +116,15 @@ func rect(img *image.RGBA, col color.Color, x1, y1, x2, y2 float64) {
 }
 
 func buildPixelMap(identicon Identicon) Identicon {
-	var drawingPoints []DrawingPoint
+	var drawingPoints []drawingPoint
 
-	pixelFunc := func(p GridPoint) DrawingPoint {
+	pixelFunc := func(p gridPoint) drawingPoint {
 		horizontal := (p.index % 5) * 50
 		vertical := (p.index / 5) * 50
-		topLeft := Point{horizontal, vertical}
-		bottomRight := Point{horizontal + 50, vertical + 50}
+		topLeft := point{x: horizontal, y: vertical}
+		bottomRight := point{x: horizontal + 50, y: vertical + 50}
 
-		return DrawingPoint{
+		return drawingPoint{
 			topLeft,
 			bottomRight,
 		}
